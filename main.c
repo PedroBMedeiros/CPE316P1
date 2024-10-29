@@ -7,6 +7,9 @@
 #define DELAY 250
 #define ARRINTERRUPT 580 // 478 ARR with a list size of 796 is perfect; 380 ARR with a 1000 size list; (USED THIS AND WORKED) 253 ARR with a 1500 size list
 
+// 580 with 655
+
+
 //volatile uint16_t samples = 660;
 volatile uint16_t waveIndex = 0;
 volatile uint8_t freq = 1;
@@ -53,7 +56,7 @@ uint16_t operate_waveforms(void) {
 		break;
 	case 9:
 		// return square wave
-		if (waveIndex < dutyCycle*0.1*670) {
+		if (waveIndex < dutyCycle*65/freq) {
 			return 15994;
 		} else {
 			return 0;
@@ -85,8 +88,8 @@ void TIM2_IRQHandler(void) { // Interrupt Service Routine
 			}
 		}
 		if (waveType == 9) {
-			if ((waveIndex + freq) < 655) {
-				waveIndex += freq;
+			if (waveIndex < 650/freq) {
+				waveIndex += 1;
 			} else {
 				waveIndex = 0;
 			}
@@ -148,12 +151,15 @@ int main(void)
 	  } else if (key <= 9) {
 		  waveType = key;
 	  } else if (key == 10) {
-		  dutyCycle -= 1;
-		  //delay(DELAY);
+		  if (dutyCycle > 1) {
+			  dutyCycle -= 1;
+		  }
 	  } else if (key == 11) {
-		  dutyCycle += 1;
-		  //delay(DELAY);
+		  if (dutyCycle < 9) {
+			  dutyCycle += 1;
+		  }
 	  } else {}
+	  delay(900000);
 
 
 
