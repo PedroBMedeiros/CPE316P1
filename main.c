@@ -4,14 +4,14 @@
 #include "dac.h"
 #include "waves.h"
 
-#define DELAY 300000
-#define ARRINTERRUPT 253 // 478 ARR with a list size of 796 is perfect; 380 ARR with a 1000 size list; 253 ARR with a 1500 size list
+#define DELAY 250
+#define ARRINTERRUPT 580 // 478 ARR with a list size of 796 is perfect; 380 ARR with a 1000 size list; (USED THIS AND WORKED) 253 ARR with a 1500 size list
 
 //volatile uint16_t samples = 660;
 volatile uint16_t waveIndex = 0;
-volatile uint8_t freq = 5;
+volatile uint8_t freq = 1;
 volatile uint8_t dutyCycle = 5;
-volatile uint8_t waveType = 6; // 6 - sine; 7 - triangle; 8 - sawtooth; 9 - square
+volatile uint8_t waveType = 9; // 6 - sine; 7 - triangle; 8 - sawtooth; 9 - square
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -38,21 +38,58 @@ void Config_PA8_GPIOclock(void) {
 
 }
 
-void TIM2_IRQHandler(void) {
+
+// this function will change the value of waveIndex according to the waveType and frequency
+uint16_t operate_waveforms(void) {
+	switch (waveType) {
+	case 6:
+		return sine[waveIndex];
+		break;
+	case 7:
+		return triangle[waveIndex];
+		break;
+	case 8:
+		return sawtooth[waveIndex];
+		break;
+	case 9:
+		// return square wave
+		if (waveIndex < dutyCycle*0.1*670) {
+			return 15994;
+		} else {
+			return 0;
+		}
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+
+
+void TIM2_IRQHandler(void) { // Interrupt Service Routine
 	if (TIM2->SR & TIM_SR_UIF) {
 		GPIOC->ODR |= (GPIO_ODR_OD10); // turn on GPIO bit
 		TIM2->SR &= ~(TIM_SR_UIF); // clear interrupt flag
 		//DAC_Write(DAC_volt_conv(sineWave[waveIndex])); // 2.12V to the DAC
-		DAC_Write(sine[waveIndex]);
-
-		if (waveIndex < 1499) {
-			if ((waveIndex + freq) < 1499 ) {
+		DAC_Write(operate_waveforms());
+		// this should only be done if were are displaying a sine, sawtooth, or triangle
+		if (waveType == 6 || waveType == 7 || waveType == 8) {
+			if (waveIndex < 654) { // COULD BE REMOVED MAYBE
+				if ((waveIndex + freq) < 654) {
+					waveIndex += freq;
+				} else {
+					waveIndex = 0;
+				}
+			} else {
+				waveIndex = 0;
+			}
+		}
+		if (waveType == 9) {
+			if ((waveIndex + freq) < 655) {
 				waveIndex += freq;
 			} else {
 				waveIndex = 0;
 			}
-		} else {
-			waveIndex = 0;
 		}
 		GPIOC->ODR &= ~(GPIO_ODR_OD10); // turn off GPIO bit
 	} else {
@@ -72,7 +109,7 @@ int main(void)
 
   Config_PA8_GPIOclock(); // config PA8 to display 36MHz clock
 
-
+  uint8_t key = 0xFF;
 
   // testing for TIM2 ISR with DAC-Write()
   // Configure PC10 as output
@@ -102,10 +139,72 @@ int main(void)
 
 
   while(1) {
+	  key = 0xFF;
+	  key = scan_keypad();
+	  if (key == 0) {
+		  dutyCycle = 5;
+	  } else if (key <= 5) {
+		  freq = key;
+	  } else if (key <= 9) {
+		  waveType = key;
+	  } else if (key == 10) {
+		  dutyCycle -= 1;
+		  //delay(DELAY);
+	  } else if (key == 11) {
+		  dutyCycle += 1;
+		  //delay(DELAY);
+	  } else {}
 
+
+
+	  /*
+	  if (key != 0xFF) {
+		  switch(key) {
+		  case 1:
+			  freq = key;
+			  break;
+		  case 2:
+			  freq = key;
+			  break;
+		  case 3:
+			  freq = key;
+		  	  break;
+		  case 4:
+			  freq = key;
+		  	  break;
+		  case 5:
+			  freq = key;
+		 	  break;
+		  case 6:
+			  waveType = key;
+		  	  break;
+		  case 7:
+			  waveType = key;
+		  	  break;
+		  case 8:
+			  waveType = key;
+		  	  break;
+		  case 9:
+			  waveType = key;
+		  	  break;
+		  case 10:
+			  if (dutyCycle > 1) {
+				  dutyCycle -= 1;
+			  }
+		  	  break;
+		  case 11:
+			  if (dutyCycle < 10) {
+				  dutyCycle += 1;
+			  }
+			  break;
+		  default:
+			  break;
+
+		  }
+	  } else {}
+	  */
+	  //delay(DELAY);
   }
-
-  // Startup_Square();
 
 }
 
