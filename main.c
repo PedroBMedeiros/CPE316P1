@@ -5,7 +5,7 @@
 #include "waves.h"
 
 #define DELAY 250
-#define ARRINTERRUPT 380 // 478 ARR with a list size of 796 is perfect; 380 ARR with a 1000 size list; (USED THIS AND WORKED) 253 ARR with a 1500 size list
+#define ARRINTERRUPT 225 // 478 ARR with a list size of 796 is perfect; 380 ARR with a 1000 size list; (USED THIS AND WORKED) 253 ARR with a 1500 size list
 
 // 580 with 655
 
@@ -46,7 +46,7 @@ void Config_PA8_GPIOclock(void) {
 uint16_t operate_waveforms(void) {
 	switch (waveType) {
 	case 6:
-		return sine1[waveIndex];
+		return sine[waveIndex];
 		break;
 	case 7:
 		return triangle[waveIndex];
@@ -56,7 +56,7 @@ uint16_t operate_waveforms(void) {
 		break;
 	case 9:
 		// return square wave
-		if (waveIndex < dutyCycle*100/freq) {
+		if (waveIndex < dutyCycle*168/freq) {
 			return 15994;
 		} else {
 			return 0;
@@ -77,8 +77,8 @@ void TIM2_IRQHandler(void) { // Interrupt Service Routine
 		DAC_Write(operate_waveforms());
 		// this should only be done if were are displaying a sine, sawtooth, or triangle
 		if (waveType == 6 || waveType == 7 || waveType == 8) {
-			if (waveIndex < 999) { // COULD BE REMOVED MAYBE
-				if ((waveIndex + freq) < 999) {
+			if (waveIndex < 1679) { // COULD BE REMOVED MAYBE
+				if ((waveIndex + freq) < 1679) {
 					waveIndex += freq;
 				} else {
 					waveIndex = 0;
@@ -88,7 +88,7 @@ void TIM2_IRQHandler(void) { // Interrupt Service Routine
 			}
 		}
 		if (waveType == 9) {
-			if (waveIndex < 1000/freq) {
+			if (waveIndex < 1680/freq) {
 				waveIndex += 1;
 			} else {
 				waveIndex = 0;
@@ -159,7 +159,7 @@ int main(void)
 			  dutyCycle += 1;
 		  }
 	  } else {}
-	  delay(900000);
+	  delay(50000);
 
 
 
